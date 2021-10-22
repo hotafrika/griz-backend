@@ -67,11 +67,13 @@ func (s Source) GetPhotos(ctx context.Context, key string) (links []string, err 
 	var embedRes EmbedResponse
 
 	err = parseBodyByScript(&embedRes, bytes.NewReader(res.Body()))
-	links = embedRes.getURLs()
-	if len(links) == 0 {
+
+	if embedRes.IsEmpty() {
 		// TODO check img class="EmbeddedMediaImage" src="link_here"
+		// return ..., ...
 	}
 
+	links = embedRes.getURLs()
 	return links, err
 }
 

@@ -11,7 +11,15 @@ func (r EmbedResponse) getURLs() []string {
 	return r.Media.EdgeSidecar.getLowestImageURLs()
 }
 
+func (r EmbedResponse) IsEmpty() bool {
+	if r.Media.ID == "" {
+		return true
+	}
+	return false
+}
+
 type Media struct {
+	ID			string		`json:"id"`
 	TypeName    string      `json:"__typename"`
 	IsVideo     bool        `json:"is_video"`
 	EdgeSidecar EdgeSidecar `json:"edge_sidecar_to_children"`
