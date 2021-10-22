@@ -13,5 +13,3 @@ type QRSource struct {
 func NewQRSource() *QRSource {
 	return &QRSource{photoSource: photo.NewPhotoSource()}
 }
-
-

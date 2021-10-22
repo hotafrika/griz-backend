@@ -5,6 +5,9 @@ type EmbedResponse struct {
 }
 
 func (r EmbedResponse) getURLs() []string {
+	if r.Media.IsVideo {
+		return nil
+	}
 	return r.Media.EdgeSidecar.getLowestImageURLs()
 }
 
