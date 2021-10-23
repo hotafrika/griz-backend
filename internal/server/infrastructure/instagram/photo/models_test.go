@@ -25,14 +25,14 @@ func TestNode_getLowestImageURL(t *testing.T) {
 				DisplayURL:       "abc",
 				DisplayResources: nil,
 			},
-			wantS: "abc",
+			wantS:  "abc",
 			wantOk: true,
 		},
 		{
 			name: "valid",
 			fields: fields{
-				IsVideo:          false,
-				DisplayURL:       "abc",
+				IsVideo:    false,
+				DisplayURL: "abc",
 				DisplayResources: []DisplayResource{
 					{
 						Width:  5,
@@ -46,14 +46,14 @@ func TestNode_getLowestImageURL(t *testing.T) {
 					},
 				},
 			},
-			wantS: "qwe",
+			wantS:  "qwe",
 			wantOk: true,
 		},
 		{
 			name: "unvalid video",
 			fields: fields{
-				IsVideo:          true,
-				DisplayURL:       "abc",
+				IsVideo:    true,
+				DisplayURL: "abc",
 				DisplayResources: []DisplayResource{
 					{
 						Width:  5,
@@ -67,7 +67,7 @@ func TestNode_getLowestImageURL(t *testing.T) {
 					},
 				},
 			},
-			wantS: "",
+			wantS:  "",
 			wantOk: false,
 		},
 		{
@@ -77,7 +77,7 @@ func TestNode_getLowestImageURL(t *testing.T) {
 				DisplayURL:       "",
 				DisplayResources: []DisplayResource{},
 			},
-			wantS: "",
+			wantS:  "",
 			wantOk: false,
 		},
 		{
@@ -87,11 +87,11 @@ func TestNode_getLowestImageURL(t *testing.T) {
 				DisplayURL:       "a",
 				DisplayResources: []DisplayResource{},
 			},
-			wantS: "a",
+			wantS:  "a",
 			wantOk: true,
 		},
 	}
-		for _, tt := range tests {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			n := Node{
 				TypeName:         tt.fields.TypeName,
@@ -132,8 +132,8 @@ func TestEdgeSidecar_getLowestImageURLs(t *testing.T) {
 					},
 					{
 						Node: Node{
-							IsVideo:          false,
-							DisplayURL:       "abc",
+							IsVideo:    false,
+							DisplayURL: "abc",
 							DisplayResources: []DisplayResource{
 								{
 									Width:  5,
@@ -150,8 +150,8 @@ func TestEdgeSidecar_getLowestImageURLs(t *testing.T) {
 					},
 					{
 						Node: Node{
-							IsVideo:          true,
-							DisplayURL:       "abc",
+							IsVideo:    true,
+							DisplayURL: "abc",
 							DisplayResources: []DisplayResource{
 								{
 									Width:  5,
@@ -213,7 +213,7 @@ func TestEmbedResponse_getURLs(t *testing.T) {
 			name: "valid",
 			fields: fields{
 				Media: Media{
-					IsVideo:     false,
+					IsVideo: false,
 					EdgeSidecar: EdgeSidecar{
 						Edges: []Edge{
 							{
@@ -225,8 +225,8 @@ func TestEmbedResponse_getURLs(t *testing.T) {
 							},
 							{
 								Node: Node{
-									IsVideo:          false,
-									DisplayURL:       "abc",
+									IsVideo:    false,
+									DisplayURL: "abc",
 									DisplayResources: []DisplayResource{
 										{
 											Width:  5,
@@ -243,8 +243,8 @@ func TestEmbedResponse_getURLs(t *testing.T) {
 							},
 							{
 								Node: Node{
-									IsVideo:          true,
-									DisplayURL:       "abc",
+									IsVideo:    true,
+									DisplayURL: "abc",
 									DisplayResources: []DisplayResource{
 										{
 											Width:  5,

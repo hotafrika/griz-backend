@@ -8,20 +8,23 @@ func (r EmbedResponse) getURLs() []string {
 	if r.Media.IsVideo {
 		return nil
 	}
-	return r.Media.EdgeSidecar.getLowestImageURLs()
+	s := r.Media.EdgeSidecar.getLowestImageURLs()
+	if len(s) == 0 && r.Media.DisplayURL != "" {
+		s = []string{r.Media.DisplayURL}
+	}
+	return s
 }
 
+// IsEmpty return if necessary script is absent
 func (r EmbedResponse) IsEmpty() bool {
-	if r.Media.ID == "" {
-		return true
-	}
-	return false
+	return r.Media.ID == ""
 }
 
 type Media struct {
-	ID			string		`json:"id"`
+	ID          string      `json:"id"`
 	TypeName    string      `json:"__typename"`
 	IsVideo     bool        `json:"is_video"`
+	DisplayURL  string      `json:"display_url"`
 	EdgeSidecar EdgeSidecar `json:"edge_sidecar_to_children"`
 }
 

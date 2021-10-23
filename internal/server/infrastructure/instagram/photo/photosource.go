@@ -68,13 +68,7 @@ func (s Source) GetPhotos(ctx context.Context, key string) (links []string, err 
 
 	err = parseBodyByScript(&embedRes, bytes.NewReader(res.Body()))
 
-	if embedRes.IsEmpty() {
-		// TODO check img class="EmbeddedMediaImage" src="link_here"
-		// return ..., ...
-	}
-
-	links = embedRes.getURLs()
-	return links, err
+	return embedRes.getURLs(), err
 }
 
 func (s Source) validateKey(key string) error {
@@ -100,6 +94,13 @@ func parseBodyByScript(er *EmbedResponse, r io.Reader) (err error) {
 		}
 		return false
 	})
+
+	if er.IsEmpty() {
+		src, ok := doc.Find(".EmbeddedMediaImage").First().Attr("src")
+		if ok {
+			er.Media.DisplayURL = src
+		}
+	}
 
 	return
 }
