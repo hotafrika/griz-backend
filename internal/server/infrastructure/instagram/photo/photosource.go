@@ -10,6 +10,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/hotafrika/griz-backend/internal/server/domain"
 	"github.com/pkg/errors"
+	"html"
 	"io"
 	"net/http"
 	"regexp"
@@ -98,10 +99,11 @@ func parseBodyByScript(er *EmbedResponse, r io.Reader) (err error) {
 	if er.IsEmpty() {
 		src, ok := doc.Find(".EmbeddedMediaImage").First().Attr("src")
 		if ok {
-			er.Media.DisplayURL = src
+			er.Media.DisplayURL = html.UnescapeString(src)
 		}
 	}
 
+	fmt.Println(er.getURLs())
 	return
 }
 
