@@ -15,6 +15,7 @@ type Makiuchi struct {
 }
 
 // Decode decodes slice of bytes (potential image) to result string as slice of bytes
+// It decodes only good printed QRs. Look at tests file to img1.png file. It doesn't decode this img.
 func (m Makiuchi) Decode(b []byte) ([]byte, error) {
 	img, _, err := image.Decode(bytes.NewReader(b))
 	if err != nil {
