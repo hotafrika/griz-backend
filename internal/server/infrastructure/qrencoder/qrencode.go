@@ -40,6 +40,16 @@ func NewYeqown(options ...YeqownOption) Yeqown {
 	return y
 }
 
+// DefaultYeqown creates new default encoder
+func DefaultYeqown() Yeqown {
+	y := Yeqown{}
+	options := []YeqownOption{WithQRWidth(6), WithFileImagePNG("GrizLogo.png")}
+	for _, option := range options {
+		option(&y)
+	}
+	return y
+}
+
 // Encode returns slice of bytes with QR code
 func (y Yeqown) Encode(b []byte) ([]byte, error) {
 	qr, err := qrcode.New(string(b), y.options...)

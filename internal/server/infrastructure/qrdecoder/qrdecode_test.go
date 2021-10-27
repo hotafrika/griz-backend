@@ -56,8 +56,8 @@ func TestMakiuchi_Decode(t *testing.T) {
 			wantErr:  true,
 		},
 	}
+	var m Makiuchi
 	for _, tt := range tests {
-		var m Makiuchi
 		t.Run(tt.filename, func(t *testing.T) {
 			file, err := os.Open(path.Join("testdata", tt.filename))
 			assert.NoError(t, err)
