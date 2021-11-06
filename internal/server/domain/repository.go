@@ -17,7 +17,7 @@ type UserRepository interface {
 	GetByUsernameAndPass(context.Context, entities.User) (uint64, error)
 }
 
-var ErrCodeNotFound = errors.New("user not found")
+var ErrCodeNotFound = errors.New("code not found")
 
 type CodeRepository interface {
 	// List (ctx, UserID, offset, limit) -> ([]Code, error)
