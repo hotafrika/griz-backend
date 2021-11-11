@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/hotafrika/griz-backend/internal/server/app/authtoken"
 	"github.com/hotafrika/griz-backend/internal/server/app/password"
+	"github.com/hotafrika/griz-backend/internal/server/app/token"
 	"github.com/hotafrika/griz-backend/internal/server/domain"
 	"github.com/hotafrika/griz-backend/internal/server/domain/entities"
 	"github.com/hotafrika/griz-backend/internal/server/infrastructure/cache"
@@ -17,7 +18,7 @@ import (
 // CodeService contains app logic
 type CodeService struct {
 	authTokenTTL       time.Duration
-	tokenTTL           time.Duration
+	hashTTL            time.Duration
 	socialLinkTTL      time.Duration
 	logger             zerolog.Logger
 	cache              domain.Cacher
@@ -26,12 +27,13 @@ type CodeService struct {
 	qrSource           *instagram.QRSource
 	passEncryptor      password.Encryptor
 	authTokenEncryptor authtoken.JWT
+	hashEncryptor      token.AES
 }
 
 // NewCodeService creates new service
 func NewCodeService(
 	authTokenTTL,
-	tokenTTL,
+	hastTTL,
 	socialLinkTTL time.Duration,
 	logger zerolog.Logger,
 	cache domain.Cacher,
@@ -39,10 +41,11 @@ func NewCodeService(
 	userRepo domain.UserRepository,
 	passEncryptor password.Encryptor,
 	authTokenEncryptor authtoken.JWT,
+	hashEncryptor token.AES,
 ) CodeService {
 	return CodeService{
 		authTokenTTL:       authTokenTTL,
-		tokenTTL:           tokenTTL,
+		hashTTL:            hastTTL,
 		socialLinkTTL:      socialLinkTTL,
 		logger:             logger,
 		cache:              cache,
@@ -50,6 +53,7 @@ func NewCodeService(
 		userRepo:           userRepo,
 		passEncryptor:      passEncryptor,
 		authTokenEncryptor: authTokenEncryptor,
+		hashEncryptor:      hashEncryptor,
 		qrSource:           instagram.NewQRSource(),
 	}
 }
@@ -147,10 +151,32 @@ func (s CodeService) FindCodeByHash(ctx context.Context, hash string) (string, e
 		return "", err
 	}
 
-	err = s.cache.Set(ctx, cache.HashUrl{Key: code.Hash}, code.SrcURL, s.tokenTTL)
+	err = s.cache.Set(ctx, cache.HashUrl{Key: code.Hash}, code.SrcURL, s.hashTTL)
 	if err != nil {
 		// TODO wrap or log
 		return "", err
 	}
 	return code.SrcURL, nil
+}
+
+// CreateCode creates code and adds it to cache
+func (s CodeService) CreateCode(ctx context.Context, code entities.Code) (uint64, error) {
+	hashValue, err := s.hashEncryptor.Create(code.ID)
+	if err != nil {
+		return 0, err
+	}
+
+	code.Hash = hashValue
+	id, err := s.codeRepo.Create(ctx, code)
+	if err != nil {
+		return 0, err
+	}
+
+	err = s.cache.Set(ctx, cache.HashUrl{Key: hashValue}, strconv.FormatUint(id, 10), s.hashTTL)
+	if err != nil {
+		// TODO maybe delete from repo
+		return 0, err
+	}
+
+	return id, nil
 }
