@@ -1,6 +1,7 @@
 package inmemory
 
 import (
+	"context"
 	"fmt"
 	"github.com/hotafrika/griz-backend/internal/server/infrastructure/cache"
 	"github.com/stretchr/testify/assert"
@@ -37,7 +38,7 @@ func TestCache_Set(t *testing.T) {
 	c := NewCache()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := c.Set(tt.key, tt.value, 0)
+			err := c.Set(context.TODO(), tt.key, tt.value, 0)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.mapLength, len(c.data), "len of underlying map")
 		})
@@ -69,12 +70,12 @@ func TestCache_Get(t *testing.T) {
 
 	c := NewCache()
 	for _, tt := range tests {
-		err := c.Set(tt.key, tt.value, 0)
+		err := c.Set(context.TODO(), tt.key, tt.value, 0)
 		assert.NoError(t, err)
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s, err := c.Get(tt.key)
+			s, err := c.Get(context.TODO(), tt.key)
 			if assert.NoError(t, err) {
 				assert.Equal(t, tt.value, s)
 			}
@@ -107,14 +108,14 @@ func TestCache_Delete(t *testing.T) {
 
 	c := NewCache()
 	for _, tt := range tests {
-		err := c.Set(tt.key, tt.value, 0)
+		err := c.Set(context.TODO(), tt.key, tt.value, 0)
 		assert.NoError(t, err)
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := c.Delete(tt.key)
+			err := c.Delete(context.TODO(), tt.key)
 			assert.NoError(t, err)
-			_, err = c.Get(tt.key)
+			_, err = c.Get(context.TODO(), tt.key)
 			assert.Error(t, err)
 		})
 	}

@@ -153,6 +153,54 @@ func TestCodeRepository_Get(t *testing.T) {
 	}
 }
 
+func TestCodeRepository_GetByToken(t *testing.T) {
+	tests := []struct {
+		code       entities.Code
+		wantLen    int
+		wantLastID uint64
+	}{
+		{
+			code: entities.Code{
+				UserID: 1,
+				SrcURL: "1",
+				Hash:   "abc",
+			},
+		},
+		{
+			code: entities.Code{
+				UserID: 2,
+				SrcURL: "2",
+				Hash:   "cde",
+			},
+		},
+		{
+			code: entities.Code{
+				UserID: 1,
+				SrcURL: "3",
+				Hash:   "def",
+			},
+		},
+	}
+
+	cr := NewCodeRepository()
+	ctx := context.TODO()
+	tokens := make([]string, 0, len(tests))
+
+	for _, tt := range tests {
+		_, err := cr.Create(ctx, tt.code)
+		if assert.NoError(t, err) {
+			tokens = append(tokens, tt.code.Hash)
+		}
+	}
+
+	for _, token := range tokens {
+		t.Run(token, func(t *testing.T) {
+			_, err := cr.GetByHash(ctx, token)
+			assert.NoError(t, err)
+		})
+	}
+}
+
 func TestCodeRepository_Update(t *testing.T) {
 	tests := []struct {
 		code       entities.Code

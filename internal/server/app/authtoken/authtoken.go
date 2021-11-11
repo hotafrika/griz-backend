@@ -12,15 +12,15 @@ type JWT struct {
 }
 
 // NewJWT creates new JWT tokenizer
-func NewJWT(key []byte, d time.Duration) *JWT {
-	return &JWT{
+func NewJWT(key []byte, d time.Duration) JWT {
+	return JWT{
 		Duration: d,
 		key:      key,
 	}
 }
 
 // NewJWTFromString creates new JWT tokenizer
-func NewJWTFromString(skey string, d time.Duration) *JWT {
+func NewJWTFromString(skey string, d time.Duration) JWT {
 	return NewJWT([]byte(skey), d)
 }
 

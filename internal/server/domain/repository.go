@@ -26,6 +26,8 @@ type CodeRepository interface {
 	ListAll(context.Context, uint64) ([]entities.Code, error)
 	// Get (ctx, CodeID) -> (Code, error)
 	Get(context.Context, uint64) (entities.Code, error)
+	// GetByHash (ctx, token) -> (Code, error)
+	GetByHash(context.Context, string) (entities.Code, error)
 	// Create (ctx, Code) -> (CodeID, error)
 	Create(context.Context, entities.Code) (uint64, error)
 	// Update (ctx, Code) -> (error)

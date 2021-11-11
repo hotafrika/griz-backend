@@ -59,6 +59,25 @@ func (c *CodeRepository) Get(ctx context.Context, u uint64) (entities.Code, erro
 	return v, nil
 }
 
+// GetByHash returns code by its token
+func (c *CodeRepository) GetByHash(ctx context.Context, token string) (entities.Code, error) {
+	result := entities.Code{}
+	ok := false
+	c.rmu.RLock()
+	for _, v := range c.codes {
+		if v.Hash == token {
+			result = v
+			ok = true
+			break
+		}
+	}
+	c.rmu.RUnlock()
+	if !ok {
+		return entities.Code{}, domain.ErrCodeNotFound
+	}
+	return result, nil
+}
+
 // Create adds new code to repo
 func (c *CodeRepository) Create(ctx context.Context, code entities.Code) (uint64, error) {
 	c.rmu.Lock()
