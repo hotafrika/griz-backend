@@ -17,6 +17,7 @@ type QRSource struct {
 	client      *resty.Client
 }
 
+// NewQRSource ...
 func NewQRSource() *QRSource {
 	return &QRSource{
 		photoSource: photo.NewPhotoSource(),
@@ -24,6 +25,8 @@ func NewQRSource() *QRSource {
 	}
 }
 
+// GetFirstQR returns parsed data from first found code.
+// It could be any kind of data. For our case we need to validate it.
 func (qs QRSource) GetFirstQR(ctx context.Context, code string) (b []byte, err error) {
 	links, err := qs.photoSource.GetPhotos(ctx, code)
 	if err != nil {
@@ -63,6 +66,22 @@ func (qs QRSource) GetFirstQR(ctx context.Context, code string) (b []byte, err e
 	return res, nil
 }
 
+func (qs QRSource) processImage(ctx context.Context, link string) ([]byte, error) {
+	b, err := qs.downloadImage(ctx, link)
+	if err != nil {
+		// TODO log here
+		return nil, err
+	}
+
+	res, err := qs.decoder.Decode(b)
+	if err != nil {
+		// TODO log here
+		return nil, err
+	}
+
+	return res, nil
+}
+
 func (qs QRSource) downloadImage(ctx context.Context, link string) ([]byte, error) {
 	res, err := qs.client.R().SetContext(ctx).Get(link)
 	if err != nil {
@@ -72,20 +91,4 @@ func (qs QRSource) downloadImage(ctx context.Context, link string) ([]byte, erro
 		return nil, errors.New("unable to download image. Broken link")
 	}
 	return res.Body(), nil
-}
-
-func (qs QRSource) processImage(ctx context.Context, link string) ([]byte, error) {
-	b, err := qs.downloadImage(ctx, link)
-	if err != nil {
-		// log here
-		return nil, err
-	}
-
-	res, err := qs.decoder.Decode(b)
-	if err != nil {
-		// log here
-		return nil, err
-	}
-
-	return res, nil
 }

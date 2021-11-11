@@ -124,7 +124,17 @@ func (s CodeService) FindCodeBySocial(ctx context.Context, link string) (string,
 		return "", err
 	}
 
-	err = s.cache.Set(ctx, cache.SocialUrl{Key: link}, string(b), s.socialLinkTTL)
+	hashToken, err := token.ExtractHashFromLink(string(b))
+	if err != nil { // token not found in decoded data
+		return "", errors.Wrap(err, "hash from decoded data: ")
+	}
+
+	srcLink, err := s.FindCodeByHash(ctx, hashToken)
+	if err != nil {
+		return "", errors.Wrap(err, "hash from decoded data: ")
+	}
+
+	err = s.cache.Set(ctx, cache.SocialUrl{Key: link}, srcLink, s.socialLinkTTL)
 	if err != nil {
 		// TODO wrap or maybe log
 		return "", err
@@ -134,9 +144,9 @@ func (s CodeService) FindCodeBySocial(ctx context.Context, link string) (string,
 }
 
 // FindCodeByHash returns sourceUrl by its hash
-func (s CodeService) FindCodeByHash(ctx context.Context, hash string) (string, error) {
-	value, err := s.cache.Get(ctx, cache.HashUrl{Key: hash})
-	if err == nil { // hash found
+func (s CodeService) FindCodeByHash(ctx context.Context, hashToken string) (string, error) {
+	value, err := s.cache.Get(ctx, cache.HashUrl{Key: hashToken})
+	if err == nil { // hashToken found
 		return value, nil
 	}
 	if !errors.Is(err, domain.ErrCacheNotExist) { // some error
@@ -144,8 +154,8 @@ func (s CodeService) FindCodeByHash(ctx context.Context, hash string) (string, e
 		return "", err
 	}
 
-	// hash not found
-	code, err := s.codeRepo.GetByHash(ctx, hash)
+	// hashToken not found
+	code, err := s.codeRepo.GetByHash(ctx, hashToken)
 	if err != nil {
 		// TODO wrap
 		return "", err

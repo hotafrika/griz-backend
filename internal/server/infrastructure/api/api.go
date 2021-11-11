@@ -68,11 +68,15 @@ func (rest *Rest) configureRouter() {
 
 	// /api
 	rest.router.Route("/api", func(r chi.Router) {
+		r.Use(middleware.RequestID)
+		r.Use(middleware.Logger)
+		r.Use(middleware.Recoverer)
+		r.Use(middleware.Timeout(rest.timeout))
+
 		// api/v1
 		r.Route("/v1", func(r chi.Router) {
 			// with auth
 			r.Group(func(r chi.Router) {
-				r.Use(middleware.Timeout(rest.timeout))
 				r.Use(rest.authMiddleware)
 				// api/v1/code...
 				r.Mount("/code", rest.CodesRouter())
