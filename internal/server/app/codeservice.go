@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/hotafrika/griz-backend/internal/server/app/authtoken"
 	"github.com/hotafrika/griz-backend/internal/server/app/password"
+	"github.com/hotafrika/griz-backend/internal/server/app/qrencoder"
 	"github.com/hotafrika/griz-backend/internal/server/app/token"
 	"github.com/hotafrika/griz-backend/internal/server/domain"
 	"github.com/hotafrika/griz-backend/internal/server/domain/entities"
@@ -25,6 +26,7 @@ type CodeService struct {
 	codeRepo           domain.CodeRepository
 	userRepo           domain.UserRepository
 	qrSource           *instagram.QRSource
+	qrEncoder          qrencoder.Yeqown
 	passEncryptor      password.Encryptor
 	authTokenEncryptor authtoken.JWT
 	hashEncryptor      token.AES
@@ -55,6 +57,7 @@ func NewCodeService(
 		authTokenEncryptor: authTokenEncryptor,
 		hashEncryptor:      hashEncryptor,
 		qrSource:           instagram.NewQRSource(),
+		qrEncoder:          qrencoder.DefaultYeqown(),
 	}
 }
 
@@ -189,4 +192,36 @@ func (s CodeService) CreateCode(ctx context.Context, code entities.Code) (uint64
 	}
 
 	return id, nil
+}
+
+// GetCodes returns codes by userID
+func (s CodeService) GetCodes(ctx context.Context, userID uint64) ([]entities.Code, error) {
+	codes, err := s.codeRepo.ListAll(ctx, userID)
+	return codes, err
+}
+
+// GetCode returns code by userID
+func (s CodeService) GetCode(ctx context.Context, codeID uint64) (entities.Code, error) {
+	code, err := s.codeRepo.Get(ctx, codeID)
+	return code, err
+}
+
+// DownloadCodeByHash returns code by userID
+func (s CodeService) DownloadCodeByHash(ctx context.Context, hashToken string) (string, error) {
+	b, err := s.qrEncoder.Encode([]byte(token.BuildLink(hashToken)))
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+// DeleteCode ...
+func (s CodeService) DeleteCode(ctx context.Context, code entities.Code) error {
+	err := s.cache.Delete(ctx, cache.HashUrl{Key: code.Hash})
+	if err != nil {
+		return err
+	}
+
+	err = s.codeRepo.Delete(ctx, code.ID)
+	return err
 }

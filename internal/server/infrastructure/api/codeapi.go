@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/hotafrika/griz-backend/internal/server/domain"
 	"github.com/hotafrika/griz-backend/internal/server/domain/entities"
 	"github.com/hotafrika/griz-backend/internal/server/infrastructure/api/resources"
+	"github.com/pkg/errors"
 	"io"
 	"net/http"
+	"strconv"
 )
 
 // CodesRouter returns router for
@@ -17,7 +20,7 @@ func (rest *Rest) CodesRouter() chi.Router {
 	router.Post("/", rest.createCode)
 	router.Get("/", rest.listCodes)
 
-	router.Route("/{id}", func(r chi.Router) {
+	router.Route("/{codeID}", func(r chi.Router) {
 		r.Get("/", rest.getCode)
 		r.Get("/download", rest.downloadCode)
 		r.Put("/", rest.updateCode)
@@ -88,8 +91,32 @@ func (rest *Rest) listCodes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO get codes by UserID
-	w.Write([]byte(fmt.Sprintf("list codes for %d", userID)))
+	codes, err := rest.service.GetCodes(r.Context(), userID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("internal error"))
+		return
+	}
+
+	newCodes := make([]resources.GetCodeResponse, 0, len(codes))
+	for _, code := range codes {
+		newCodes = append(newCodes, resources.GetCodeResponse{
+			ID:  code.ID,
+			URL: code.SrcURL,
+		})
+	}
+	newCodesR := resources.GetCodesResponse{
+		Codes: newCodes,
+	}
+
+	body, err := json.Marshal(newCodesR)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error during building response"))
+		return
+	}
+
+	w.Write(body)
 }
 
 func (rest *Rest) getCode(w http.ResponseWriter, r *http.Request) {
@@ -100,12 +127,43 @@ func (rest *Rest) getCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO validate request
+	codeIDString := chi.URLParam(r, "codeID")
+	codeID, err := strconv.ParseUint(codeIDString, 10, 64)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("wrong code id"))
+		return
+	}
 
-	// TODO get code
+	code, err := rest.service.GetCode(r.Context(), codeID)
+	if err != nil {
+		if errors.Is(err, domain.ErrCodeNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("not found"))
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("internal error"))
+		return
+	}
 
-	// TODO compare with UserID
-	w.Write([]byte(fmt.Sprintf("get code for %d", userID)))
+	if code.UserID != userID {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("unauthorized"))
+		return
+	}
+
+	body, err := json.Marshal(resources.GetCodeResponse{
+		ID:  code.ID,
+		URL: code.SrcURL,
+	})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error during building response"))
+		return
+	}
+
+	w.Write(body)
 }
 
 func (rest *Rest) downloadCode(w http.ResponseWriter, r *http.Request) {
@@ -116,14 +174,47 @@ func (rest *Rest) downloadCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO validate request
+	codeIDString := chi.URLParam(r, "codeID")
+	codeID, err := strconv.ParseUint(codeIDString, 10, 64)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("wrong code id"))
+		return
+	}
 
-	// TODO get code
+	code, err := rest.service.GetCode(r.Context(), codeID)
+	if err != nil {
+		if errors.Is(err, domain.ErrCodeNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("not found"))
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("internal error"))
+		return
+	}
 
-	// TODO compare with UserID
+	if code.UserID != userID {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("unauthorized"))
+		return
+	}
 
-	// TODO generate base64 for image
-	w.Write([]byte(fmt.Sprintf("download code for %d", userID)))
+	encodedQR, err := rest.service.DownloadCodeByHash(r.Context(), code.Hash)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("internal error"))
+		return
+	}
+
+	body, err := json.Marshal(resources.DownloadCodeResponse{Code: encodedQR})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error during building response"))
+		return
+	}
+
+	w.Write(body)
 }
 
 func (rest *Rest) updateCode(w http.ResponseWriter, r *http.Request) {
@@ -154,14 +245,45 @@ func (rest *Rest) deleteCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO validate request
+	codeIDString := chi.URLParam(r, "codeID")
+	codeID, err := strconv.ParseUint(codeIDString, 10, 64)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("wrong code id"))
+		return
+	}
 
-	// TODO get code
+	code, err := rest.service.GetCode(r.Context(), codeID)
+	if err != nil {
+		if errors.Is(err, domain.ErrCodeNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("not found"))
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("internal error"))
+		return
+	}
 
-	// TODO compare with UserID
+	if code.UserID != userID {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("unauthorized"))
+		return
+	}
 
-	// TODO delete from CACHE
+	err = rest.service.DeleteCode(r.Context(), code)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("internal error"))
+		return
+	}
 
-	// TODO delete from DB
-	w.Write([]byte(fmt.Sprintf("delete code for %d", userID)))
+	body, err := json.Marshal(resources.DeleteCodeResponse{Status: "ok"})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error during building response"))
+		return
+	}
+
+	w.Write(body)
 }

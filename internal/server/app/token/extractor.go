@@ -28,3 +28,8 @@ func ExtractHashFromLink(link string) (string, error) {
 	}
 	return res, nil
 }
+
+// BuildLink ...
+func BuildLink(hashToken string) string {
+	return "https://griz.grizzlytics.com/app?d=" + hashToken
+}

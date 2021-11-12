@@ -38,3 +38,24 @@ func (r UpdateCodeRequest) Validate() error {
 	}
 	return nil
 }
+
+// GetCodeResponse ...
+type GetCodeResponse struct {
+	ID  uint64 `json:"id"`
+	URL string `json:"url"`
+}
+
+// GetCodesResponse ...
+type GetCodesResponse struct {
+	Codes []GetCodeResponse `json:"codes"`
+}
+
+// DownloadCodeResponse ...
+type DownloadCodeResponse struct {
+	Code string `json:"code"`
+}
+
+// DeleteCodeResponse ...
+type DeleteCodeResponse struct {
+	Status string `json:"status"`
+}

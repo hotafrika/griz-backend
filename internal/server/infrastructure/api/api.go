@@ -19,25 +19,25 @@ import (
 const userIdInCtx = "user_id"
 
 type Rest struct {
-	bindAddr     string
-	timeout      time.Duration
-	parseTimeout time.Duration
-	logger       zerolog.Logger
-	service      app.CodeService
-	router       chi.Router
-	server       *http.Server
+	bindAddr    string
+	timeout     time.Duration
+	scanTimeout time.Duration
+	logger      zerolog.Logger
+	service     app.CodeService
+	router      chi.Router
+	server      *http.Server
 }
 
 // NewRest creates Rest api
 // TODO
 func NewRest(bindAddr string, timeout time.Duration, parseTimeout time.Duration, logger zerolog.Logger, service app.CodeService) *Rest {
 	r := &Rest{
-		bindAddr:     bindAddr,
-		timeout:      timeout,
-		parseTimeout: parseTimeout,
-		logger:       logger,
-		service:      service,
-		router:       chi.NewRouter(),
+		bindAddr:    bindAddr,
+		timeout:     timeout,
+		scanTimeout: parseTimeout,
+		logger:      logger,
+		service:     service,
+		router:      chi.NewRouter(),
 	}
 	r.configureRouter()
 	r.server = &http.Server{
@@ -85,10 +85,17 @@ func (rest *Rest) configureRouter() {
 			// api/v1/public/...
 			r.Route("/public", func(r chi.Router) {
 				r.Post("/url", rest.urlHandler)
-				r.Post("/scan", rest.scanHandler)
+				r.Group(func(r chi.Router) {
+					//r.Use(middleware.Throttle(10))
+					r.Use(middleware.Timeout(rest.scanTimeout))
+					r.Post("/scan", rest.scanHandler)
+				})
 			})
 			// api/v1/token
-			r.Get("/token", rest.tokenHandler)
+			r.Group(func(r chi.Router) {
+				//r.Use(middleware.Throttle(10))
+				r.Get("/token", rest.tokenHandler)
+			})
 		})
 	})
 }
