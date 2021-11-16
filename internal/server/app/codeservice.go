@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/base64"
 	"github.com/hotafrika/griz-backend/internal/server/app/authtoken"
 	"github.com/hotafrika/griz-backend/internal/server/app/password"
 	"github.com/hotafrika/griz-backend/internal/server/app/qrencoder"
@@ -174,13 +175,20 @@ func (s CodeService) FindCodeByHash(ctx context.Context, hashToken string) (stri
 
 // CreateCode creates code and adds it to cache
 func (s CodeService) CreateCode(ctx context.Context, code entities.Code) (uint64, error) {
-	hashValue, err := s.hashEncryptor.Create(code.ID)
+	id, err := s.codeRepo.Create(ctx, code)
+	if err != nil {
+		return 0, err
+	}
+
+	hashValue, err := s.hashEncryptor.Create(id)
 	if err != nil {
 		return 0, err
 	}
 
 	code.Hash = hashValue
-	id, err := s.codeRepo.Create(ctx, code)
+	code.ID = id
+
+	err = s.codeRepo.Update(ctx, code)
 	if err != nil {
 		return 0, err
 	}
@@ -212,7 +220,18 @@ func (s CodeService) DownloadCodeByHash(ctx context.Context, hashToken string) (
 	if err != nil {
 		return "", err
 	}
-	return string(b), nil
+	return base64.StdEncoding.EncodeToString(b), nil
+}
+
+// UpdateCode ...
+func (s CodeService) UpdateCode(ctx context.Context, code entities.Code) error {
+	err := s.cache.Set(ctx, cache.HashUrl{Key: code.Hash}, code.SrcURL, s.hashTTL)
+	if err != nil {
+		return err
+	}
+
+	err = s.codeRepo.Update(ctx, code)
+	return err
 }
 
 // DeleteCode ...

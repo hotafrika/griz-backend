@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/hotafrika/griz-backend/internal/server/domain"
 	"github.com/hotafrika/griz-backend/internal/server/domain/entities"
@@ -42,7 +41,7 @@ func (rest *Rest) createCode(w http.ResponseWriter, r *http.Request) {
 	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("unable to real body"))
+		w.Write([]byte("unable to read body"))
 		return
 	}
 	defer r.Body.Close()
@@ -225,16 +224,66 @@ func (rest *Rest) updateCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO validate request
+	codeIDString := chi.URLParam(r, "codeID")
+	codeID, err := strconv.ParseUint(codeIDString, 10, 64)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("wrong code id"))
+		return
+	}
 
-	// TODO get code
+	cr := resources.CodeCreateRequest{}
+	reqBody, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("unable to read body"))
+		return
+	}
+	defer r.Body.Close()
+	err = json.Unmarshal(reqBody, &cr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("unable to deserialize body"))
+		return
+	}
 
-	// TODO compare with UserID
+	err = cr.Validate()
+	if err != nil {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		w.Write([]byte("wrong data"))
+		return
+	}
 
-	// TODO update in DB
+	code, err := rest.service.GetCode(r.Context(), codeID)
+	if err != nil {
+		if errors.Is(err, domain.ErrCodeNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("not found"))
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("internal error"))
+		return
+	}
 
-	// TODO update in CACHE
-	w.Write([]byte(fmt.Sprintf("update code for %d", userID)))
+	if code.UserID != userID {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("unauthorized"))
+		return
+	}
+
+	code.SrcURL = cr.URL
+
+	rest.service.UpdateCode(r.Context(), code)
+
+	body, err := json.Marshal(resources.GetCodeResponse{ID: code.ID, URL: code.SrcURL})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error during building response"))
+		return
+	}
+
+	w.Write(body)
 }
 
 func (rest *Rest) deleteCode(w http.ResponseWriter, r *http.Request) {

@@ -94,7 +94,7 @@ func (rest *Rest) configureRouter() {
 			// api/v1/token
 			r.Group(func(r chi.Router) {
 				//r.Use(middleware.Throttle(10))
-				r.Get("/token", rest.tokenHandler)
+				r.Post("/token", rest.tokenHandler)
 			})
 		})
 	})
@@ -150,7 +150,7 @@ func (rest *Rest) tokenHandler(w http.ResponseWriter, r *http.Request) {
 	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("unable to real body"))
+		w.Write([]byte("unable to read body"))
 		return
 	}
 	defer r.Body.Close()
@@ -200,7 +200,7 @@ func (rest *Rest) urlHandler(w http.ResponseWriter, r *http.Request) {
 	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("unable to real body"))
+		w.Write([]byte("unable to read body"))
 		return
 	}
 	defer r.Body.Close()
@@ -245,7 +245,7 @@ func (rest *Rest) scanHandler(w http.ResponseWriter, r *http.Request) {
 	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("unable to real body"))
+		w.Write([]byte("unable to read body"))
 		return
 	}
 	defer r.Body.Close()

@@ -12,7 +12,7 @@ func ExtractHashFromLink(link string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if !strings.HasSuffix(link, "https://griz.grizzlytics.com/app?d=") {
+	if !strings.HasPrefix(link, "https://griz.grizzlytics.com/app?d=") {
 		return "", errors.New("not griz link")
 	}
 	//if !(link.Host == "griz.grizzlytics.com") {
