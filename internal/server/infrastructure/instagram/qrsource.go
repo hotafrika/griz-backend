@@ -30,7 +30,7 @@ func NewQRSource() *QRSource {
 func (qs QRSource) GetFirstQR(ctx context.Context, code string) (b []byte, err error) {
 	links, err := qs.photoSource.GetPhotos(ctx, code)
 	if err != nil {
-		return nil, errors.Wrap(err, "qrencoder source: ")
+		return nil, errors.Wrap(err, "GetPhotos: ")
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -85,7 +85,7 @@ func (qs QRSource) processImage(ctx context.Context, link string) ([]byte, error
 func (qs QRSource) downloadImage(ctx context.Context, link string) ([]byte, error) {
 	res, err := qs.client.R().SetContext(ctx).Get(link)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "HTTP Get link: ")
 	}
 	if res.StatusCode() != 200 {
 		return nil, errors.New("unable to download image. Broken link")

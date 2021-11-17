@@ -22,7 +22,7 @@ type Rest struct {
 	bindAddr    string
 	timeout     time.Duration
 	scanTimeout time.Duration
-	logger      zerolog.Logger
+	logger      *zerolog.Logger
 	service     app.CodeService
 	router      chi.Router
 	server      *http.Server
@@ -30,7 +30,7 @@ type Rest struct {
 
 // NewRest creates Rest api
 // TODO
-func NewRest(bindAddr string, timeout time.Duration, parseTimeout time.Duration, logger zerolog.Logger, service app.CodeService) *Rest {
+func NewRest(bindAddr string, timeout time.Duration, parseTimeout time.Duration, logger *zerolog.Logger, service app.CodeService) *Rest {
 	r := &Rest{
 		bindAddr:    bindAddr,
 		timeout:     timeout,
@@ -74,7 +74,7 @@ func (rest *Rest) configureRouter() {
 			r.Group(func(r chi.Router) {
 				r.Use(rest.authMiddleware)
 				// api/v1/code...
-				r.Mount("/code", rest.CodesRouter())
+				r.Mount("/codes", rest.CodesRouter())
 				r.Get("/self", rest.userSelfHandler)
 			})
 			// api/v1/public/...

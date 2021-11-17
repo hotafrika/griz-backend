@@ -85,8 +85,11 @@ func (rest *Rest) listCodes(w http.ResponseWriter, r *http.Request) {
 
 	codes, err := rest.service.GetCodes(r.Context(), userID)
 	if err != nil {
-		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
-		return
+		if !errors.Is(err, domain.ErrCodeNotFound) {
+			rest.logger.Error().Err(err).Send()
+			rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
+			return
+		}
 	}
 
 	newCodes := make([]resources.GetCodeResponse, 0, len(codes))
@@ -102,6 +105,7 @@ func (rest *Rest) listCodes(w http.ResponseWriter, r *http.Request) {
 
 	body, err := json.Marshal(newCodesR)
 	if err != nil {
+		rest.logger.Error().Msg(err.Error())
 		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
@@ -244,7 +248,11 @@ func (rest *Rest) updateCode(w http.ResponseWriter, r *http.Request) {
 
 	code.SrcURL = cr.URL
 
-	rest.service.UpdateCode(r.Context(), code)
+	err = rest.service.UpdateCode(r.Context(), code)
+	if err != nil {
+		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
+		return
+	}
 
 	body, err := json.Marshal(resources.GetCodeResponse{ID: code.ID, URL: code.SrcURL})
 	if err != nil {

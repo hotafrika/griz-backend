@@ -2,6 +2,7 @@ package authtoken
 
 import (
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/pkg/errors"
 	"time"
 )
 
@@ -32,7 +33,7 @@ func (j JWT) MakeByID(id uint64) (string, error) {
 	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
 	token, err := at.SignedString(j.key)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "SignedString: ")
 	}
 	return token, nil
 }
