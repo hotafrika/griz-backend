@@ -32,30 +32,26 @@ func (rest *Rest) CodesRouter() chi.Router {
 func (rest *Rest) createCode(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(userIdInCtx).(uint64)
 	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("user is not defined"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "user is not defined")
 		return
 	}
 
 	cr := resources.CodeCreateRequest{}
 	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("unable to read body"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "unable to read body")
 		return
 	}
 	defer r.Body.Close()
 	err = json.Unmarshal(reqBody, &cr)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("unable to deserialize body"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "unable to deserialize body")
 		return
 	}
 
 	err = cr.Validate()
 	if err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		w.Write([]byte("wrong data"))
+		rest.writeErrorCode(w, http.StatusUnprocessableEntity, "wrong data")
 		return
 	}
 
@@ -66,15 +62,13 @@ func (rest *Rest) createCode(w http.ResponseWriter, r *http.Request) {
 
 	id, err := rest.service.CreateCode(r.Context(), code)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal error"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	body, err := json.Marshal(resources.CodeCreateResponse{ID: id})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("error during building response"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
 
@@ -85,15 +79,13 @@ func (rest *Rest) createCode(w http.ResponseWriter, r *http.Request) {
 func (rest *Rest) listCodes(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(userIdInCtx).(uint64)
 	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("user is not defined"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "user is not defined")
 		return
 	}
 
 	codes, err := rest.service.GetCodes(r.Context(), userID)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal error"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
@@ -110,8 +102,7 @@ func (rest *Rest) listCodes(w http.ResponseWriter, r *http.Request) {
 
 	body, err := json.Marshal(newCodesR)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("error during building response"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
 
@@ -121,34 +112,29 @@ func (rest *Rest) listCodes(w http.ResponseWriter, r *http.Request) {
 func (rest *Rest) getCode(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(userIdInCtx).(uint64)
 	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("user is not defined"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "user is not defined")
 		return
 	}
 
 	codeIDString := chi.URLParam(r, "codeID")
 	codeID, err := strconv.ParseUint(codeIDString, 10, 64)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("wrong code id"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "wrong code id")
 		return
 	}
 
 	code, err := rest.service.GetCode(r.Context(), codeID)
 	if err != nil {
 		if errors.Is(err, domain.ErrCodeNotFound) {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("not found"))
+			rest.writeErrorCode(w, http.StatusNotFound, "not found")
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal error"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	if code.UserID != userID {
-		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("unauthorized"))
+		rest.writeErrorCode(w, http.StatusForbidden, "unauthorized")
 		return
 	}
 
@@ -157,8 +143,7 @@ func (rest *Rest) getCode(w http.ResponseWriter, r *http.Request) {
 		URL: code.SrcURL,
 	})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("error during building response"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
 
@@ -168,48 +153,41 @@ func (rest *Rest) getCode(w http.ResponseWriter, r *http.Request) {
 func (rest *Rest) downloadCode(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(userIdInCtx).(uint64)
 	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("user is not defined"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "user is not defined")
 		return
 	}
 
 	codeIDString := chi.URLParam(r, "codeID")
 	codeID, err := strconv.ParseUint(codeIDString, 10, 64)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("wrong code id"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "wrong code id")
 		return
 	}
 
 	code, err := rest.service.GetCode(r.Context(), codeID)
 	if err != nil {
 		if errors.Is(err, domain.ErrCodeNotFound) {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("not found"))
+			rest.writeErrorCode(w, http.StatusNotFound, "not found")
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal error"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	if code.UserID != userID {
-		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("unauthorized"))
+		rest.writeErrorCode(w, http.StatusForbidden, "unauthorized")
 		return
 	}
 
 	encodedQR, err := rest.service.DownloadCodeByHash(r.Context(), code.Hash)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal error"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	body, err := json.Marshal(resources.DownloadCodeResponse{Code: encodedQR})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("error during building response"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
 
@@ -219,56 +197,48 @@ func (rest *Rest) downloadCode(w http.ResponseWriter, r *http.Request) {
 func (rest *Rest) updateCode(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(userIdInCtx).(uint64)
 	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("user is not defined"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "user is not defined")
 		return
 	}
 
 	codeIDString := chi.URLParam(r, "codeID")
 	codeID, err := strconv.ParseUint(codeIDString, 10, 64)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("wrong code id"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "wrong code id")
 		return
 	}
 
 	cr := resources.CodeCreateRequest{}
 	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("unable to read body"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "unable to read body")
 		return
 	}
 	defer r.Body.Close()
 	err = json.Unmarshal(reqBody, &cr)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("unable to deserialize body"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "unable to deserialize body")
 		return
 	}
 
 	err = cr.Validate()
 	if err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		w.Write([]byte("wrong data"))
+		rest.writeErrorCode(w, http.StatusUnprocessableEntity, "wrong data")
 		return
 	}
 
 	code, err := rest.service.GetCode(r.Context(), codeID)
 	if err != nil {
 		if errors.Is(err, domain.ErrCodeNotFound) {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("not found"))
+			rest.writeErrorCode(w, http.StatusNotFound, "not found")
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal error"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	if code.UserID != userID {
-		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("unauthorized"))
+		rest.writeErrorCode(w, http.StatusForbidden, "unauthorized")
 		return
 	}
 
@@ -278,8 +248,7 @@ func (rest *Rest) updateCode(w http.ResponseWriter, r *http.Request) {
 
 	body, err := json.Marshal(resources.GetCodeResponse{ID: code.ID, URL: code.SrcURL})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("error during building response"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
 
@@ -289,48 +258,41 @@ func (rest *Rest) updateCode(w http.ResponseWriter, r *http.Request) {
 func (rest *Rest) deleteCode(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(userIdInCtx).(uint64)
 	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("user is not defined"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "user is not defined")
 		return
 	}
 
 	codeIDString := chi.URLParam(r, "codeID")
 	codeID, err := strconv.ParseUint(codeIDString, 10, 64)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("wrong code id"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "wrong code id")
 		return
 	}
 
 	code, err := rest.service.GetCode(r.Context(), codeID)
 	if err != nil {
 		if errors.Is(err, domain.ErrCodeNotFound) {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("not found"))
+			rest.writeErrorCode(w, http.StatusNotFound, "not found")
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal error"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	if code.UserID != userID {
-		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("unauthorized"))
+		rest.writeErrorCode(w, http.StatusForbidden, "unauthorized")
 		return
 	}
 
 	err = rest.service.DeleteCode(r.Context(), code)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal error"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	body, err := json.Marshal(resources.DeleteCodeResponse{Status: "ok"})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("error during building response"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
 

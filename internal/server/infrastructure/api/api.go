@@ -56,11 +56,6 @@ func (rest *Rest) Start() error {
 	return rest.server.ListenAndServe()
 }
 
-// ServeHTTP
-//func (rest *Rest) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-//	rest.router.ServeHTTP(w, r)
-//}
-
 func (rest *Rest) configureRouter() {
 	// content block
 	rest.router.Get("/", rest.homepageHandler)
@@ -102,8 +97,7 @@ func (rest *Rest) configureRouter() {
 
 // HANDLERS
 func (rest *Rest) notFoundHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotFound)
-	w.Write([]byte("not found page"))
+	rest.writeErrorCode(w, http.StatusNotFound, "page not found")
 }
 
 func (rest *Rest) homepageHandler(w http.ResponseWriter, r *http.Request) {
@@ -117,16 +111,16 @@ func (rest *Rest) downloadAppsHandler(w http.ResponseWriter, r *http.Request) {
 func (rest *Rest) userSelfHandler(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("user_id").(uint64)
 	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("user is not defined"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "user is not defined")
 		return
 	}
 
 	user, err := rest.service.GetUser(r.Context(), userID)
 	if err != nil {
-		// TODO check errors type
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("user is not defined"))
+		if errors.Is(err, domain.ErrUserNotFound) {
+			rest.writeErrorCode(w, http.StatusNotFound, "user not found")
+		}
+		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
@@ -149,22 +143,19 @@ func (rest *Rest) tokenHandler(w http.ResponseWriter, r *http.Request) {
 	tr := resources.AuthTokenRequest{}
 	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("unable to read body"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "unable to read body")
 		return
 	}
 	defer r.Body.Close()
 	err = json.Unmarshal(reqBody, &tr)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("unable to deserialize body"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "unable to deserialize body")
 		return
 	}
 
 	err = tr.Validate()
 	if err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		w.Write([]byte("incomplete credentials"))
+		rest.writeErrorCode(w, http.StatusUnprocessableEntity, "incomplete credentials")
 		return
 	}
 
@@ -176,19 +167,16 @@ func (rest *Rest) tokenHandler(w http.ResponseWriter, r *http.Request) {
 	authToken, err := rest.service.CreateAuthToken(r.Context(), user)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("wrong credentials"))
+			rest.writeErrorCode(w, http.StatusUnauthorized, "wrong credentials")
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal error"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	body, err := json.Marshal(resources.AuthTokenResponse{Token: authToken})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("error during building response"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
 
@@ -199,41 +187,35 @@ func (rest *Rest) urlHandler(w http.ResponseWriter, r *http.Request) {
 	l := resources.LinkHashRequest{}
 	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("unable to read body"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "unable to read body")
 		return
 	}
 	defer r.Body.Close()
 	err = json.Unmarshal(reqBody, &l)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("unable to deserialize body"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "unable to deserialize body")
 		return
 	}
 
 	token, err := l.Parse()
 	if err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		w.Write([]byte("link is not compatible"))
+		rest.writeErrorCode(w, http.StatusUnprocessableEntity, "link is not compatible")
 		return
 	}
 
 	link, err := rest.service.FindCodeByHash(r.Context(), token)
 	if err != nil {
 		if errors.Is(err, domain.ErrCodeNotFound) {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("link not found"))
+			rest.writeErrorCode(w, http.StatusNotFound, "link not found")
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal error"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	body, err := json.Marshal(resources.LinkHashResponse{URL: link})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("error during building response"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
 
@@ -244,36 +226,31 @@ func (rest *Rest) scanHandler(w http.ResponseWriter, r *http.Request) {
 	sl := resources.SocialLinkRequest{}
 	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("unable to read body"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "unable to read body")
 		return
 	}
 	defer r.Body.Close()
 	err = json.Unmarshal(reqBody, &sl)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("unable to deserialize body"))
+		rest.writeErrorCode(w, http.StatusBadRequest, "unable to deserialize body")
 		return
 	}
 
 	err = sl.ValidateIsInsta()
 	if err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		w.Write([]byte("link is not compatible"))
+		rest.writeErrorCode(w, http.StatusUnprocessableEntity, "link is not compatible")
 		return
 	}
 
 	link, err := rest.service.FindCodeBySocial(r.Context(), sl.URL)
 	if err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		w.Write([]byte("unable to process link"))
+		rest.writeErrorCode(w, http.StatusUnprocessableEntity, "unable to process link")
 		return
 	}
 
 	body, err := json.Marshal(resources.SocialLinkResponse{URL: link})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("error during building response"))
+		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
 
@@ -285,18 +262,31 @@ func (rest *Rest) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authToken := r.Header.Get("Authorization")
 		if authToken == "" {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("unauthorized"))
+			rest.writeErrorCode(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
 		userID, err := rest.service.GetUserIDByAuthToken(r.Context(), authToken)
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("unauthorized"))
+			if errors.Is(err, domain.ErrCacheNotExist) {
+				rest.writeErrorCode(w, http.StatusUnauthorized, "unauthorized")
+				return
+			}
+			rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 			return
 		}
 		r = r.WithContext(context.WithValue(r.Context(), userIdInCtx, userID))
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (rest *Rest) writeErrorCode(w http.ResponseWriter, code int, message string) {
+	w.WriteHeader(code)
+	b, _ := json.Marshal(
+		struct {
+			Message string `json:"message"`
+		}{
+			Message: message,
+		})
+	w.Write(b)
 }

@@ -92,11 +92,11 @@ func (s CodeService) CreateAuthToken(ctx context.Context, user entities.User) (s
 func (s CodeService) GetUserIDByAuthToken(ctx context.Context, authToken string) (uint64, error) {
 	res, err := s.cache.Get(ctx, cache.AuthToken{Key: authToken})
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "GetUserIDByAuthToken: ")
 	}
 	userID, err := strconv.ParseUint(res, 10, 64)
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "GetUserIDByAuthToken: ")
 	}
 	return userID, nil
 }
