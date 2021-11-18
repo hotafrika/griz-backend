@@ -1,18 +1,24 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"github.com/hotafrika/griz-backend/internal/server/app"
 	"github.com/hotafrika/griz-backend/internal/server/app/authtoken"
 	"github.com/hotafrika/griz-backend/internal/server/app/password"
 	"github.com/hotafrika/griz-backend/internal/server/app/token"
+	"github.com/hotafrika/griz-backend/internal/server/domain/entities"
 	"github.com/hotafrika/griz-backend/internal/server/infrastructure/api"
 	"github.com/hotafrika/griz-backend/internal/server/infrastructure/cache/inmemory"
-	inmemory2 "github.com/hotafrika/griz-backend/internal/server/infrastructure/database/inmemory"
+	"github.com/hotafrika/griz-backend/internal/server/infrastructure/database/sqlite"
 	"github.com/rs/zerolog"
+	zlog "github.com/rs/zerolog/log"
 	"log"
 	"os"
 	"strconv"
 	"time"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
@@ -93,11 +99,33 @@ func main() {
 		encryptionAuthTokenString = hek
 	}
 
-	logger := zerolog.Logger{}
-	logger = logger.Level(logLevel)
+	// Work with SQL
+	dbDriver := "sqlite3"
+	dbString := "db.sqlite3"
+	dbd, ok := os.LookupEnv("DB_DRIVER")
+	if ok {
+		dbDriver = dbd
+	}
+	dbs, ok := os.LookupEnv("DB_CONNECTION_STRING")
+	if ok {
+		dbString = dbs
+	}
+	db, err := sql.Open(dbDriver, dbString)
+	if err != nil {
+		panic(err)
+	}
+
+	logger := zlog.Level(logLevel)
 	cache := inmemory.NewCache()
-	codeRepo := inmemory2.NewCodeRepository()
-	userRepo := inmemory2.NewUserRepository()
+
+	// Inmemory repos
+	//codeRepo := inmemory2.NewCodeRepository()
+	//userRepo := inmemory2.NewUserRepository()
+
+	// SQL repos
+	codeRepo := sqlite.NewCodeRepository(db)
+	userRepo := sqlite.NewUserRepository(db)
+
 	passEncryptor := password.NewEncryptorByString(encryptionPassString)
 	authTokenEncryptor := authtoken.NewJWTFromString(encryptionAuthTokenString, authTokenTTL)
 	hashEncryptor, err := token.NewAES(encryptionHashString)
@@ -105,11 +133,12 @@ func main() {
 		log.Fatal("unable to initialize hash encryptor")
 	}
 
+
 	service := app.NewCodeService(
 		authTokenTTL,
 		hashTTL,
 		socialLinkTTL,
-		logger,
+		&logger,
 		cache,
 		codeRepo,
 		userRepo,
@@ -118,9 +147,9 @@ func main() {
 		hashEncryptor,
 	)
 
-	rest := api.NewRest(bindAddr, reqTimeout, parseTimeout, logger, service)
+	rest := api.NewRest(bindAddr, reqTimeout, parseTimeout, &logger, service)
 	err = rest.Start()
 	if err != nil {
-		log.Fatal("error with server")
+		log.Fatalf("error with server: %v", err)
 	}
 }
