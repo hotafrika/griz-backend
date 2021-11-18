@@ -1,13 +1,11 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"github.com/hotafrika/griz-backend/internal/server/app"
 	"github.com/hotafrika/griz-backend/internal/server/app/authtoken"
 	"github.com/hotafrika/griz-backend/internal/server/app/password"
 	"github.com/hotafrika/griz-backend/internal/server/app/token"
-	"github.com/hotafrika/griz-backend/internal/server/domain/entities"
 	"github.com/hotafrika/griz-backend/internal/server/infrastructure/api"
 	"github.com/hotafrika/griz-backend/internal/server/infrastructure/cache/inmemory"
 	"github.com/hotafrika/griz-backend/internal/server/infrastructure/database/sqlite"
