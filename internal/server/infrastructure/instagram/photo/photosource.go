@@ -10,6 +10,8 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/hotafrika/griz-backend/internal/server/domain"
 	"github.com/pkg/errors"
+	"html"
+	"io"
 	"net/http"
 	"regexp"
 	"strings"
@@ -32,7 +34,7 @@ type Source struct {
 
 // NewPhotoSource creates Source
 func NewPhotoSource() Source {
-	re := regexp.MustCompile(`^[0-9A-Za-z_]+$`)
+	re := regexp.MustCompile(`^[0-9A-Za-z]+$`)
 	client := resty.New().SetTimeout(10 * time.Second)
 	return Source{
 		keyValidator: re,
@@ -63,23 +65,9 @@ func (s Source) GetPhotos(ctx context.Context, key string) (links []string, err 
 		return nil, errors.New("http request status not OK")
 	}
 
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(res.Body()))
-	if err != nil {
-		return nil, errors.Wrap(err, "goquery parsing: ")
-	}
-
 	var embedRes EmbedResponse
 
-	doc.Find("script").EachWithBreak(func(i int, selection *goquery.Selection) bool {
-		err := checkScript(&embedRes, selection.Text())
-		if err != nil {
-			if !errors.Is(err, notNecScript) {
-				//TODO log here
-			}
-			return true
-		}
-		return false
-	})
+	err = parseBodyByScript(&embedRes, bytes.NewReader(res.Body()))
 
 	return embedRes.getURLs(), err
 }
@@ -89,6 +77,34 @@ func (s Source) validateKey(key string) error {
 		return errors.New("key has wrong format")
 	}
 	return nil
+}
+
+func parseBodyByScript(er *EmbedResponse, r io.Reader) (err error) {
+	doc, err := goquery.NewDocumentFromReader(r)
+	if err != nil {
+		return errors.Wrap(err, "goquery parsing: ")
+	}
+
+	doc.Find("script").EachWithBreak(func(i int, selection *goquery.Selection) bool {
+		err := checkScript(er, selection.Text())
+		if err != nil {
+			if !errors.Is(err, notNecScript) {
+				//TODO log here
+			}
+			return true
+		}
+		return false
+	})
+
+	if er.IsEmpty() {
+		src, ok := doc.Find(".EmbeddedMediaImage").First().Attr("src")
+		if ok {
+			er.Media.DisplayURL = html.UnescapeString(src)
+		}
+	}
+
+	fmt.Println(er.getURLs())
+	return
 }
 
 func checkScript(er *EmbedResponse, scriptContent string) (err error) {
@@ -102,6 +118,3 @@ func checkScript(er *EmbedResponse, scriptContent string) (err error) {
 	err = json.Unmarshal([]byte(res), er)
 	return
 }
-
-
-

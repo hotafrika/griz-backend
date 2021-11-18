@@ -5,12 +5,26 @@ type EmbedResponse struct {
 }
 
 func (r EmbedResponse) getURLs() []string {
-	return r.Media.EdgeSidecar.getLowestImageURLs()
+	if r.Media.IsVideo {
+		return nil
+	}
+	s := r.Media.EdgeSidecar.getLowestImageURLs()
+	if len(s) == 0 && r.Media.DisplayURL != "" {
+		s = []string{r.Media.DisplayURL}
+	}
+	return s
+}
+
+// IsEmpty return if necessary script is absent
+func (r EmbedResponse) IsEmpty() bool {
+	return r.Media.ID == ""
 }
 
 type Media struct {
+	ID          string      `json:"id"`
 	TypeName    string      `json:"__typename"`
 	IsVideo     bool        `json:"is_video"`
+	DisplayURL  string      `json:"display_url"`
 	EdgeSidecar EdgeSidecar `json:"edge_sidecar_to_children"`
 }
 
