@@ -1,12 +1,15 @@
 package domain
 
 import (
+	"context"
 	"fmt"
 	"time"
 )
 
+var ErrCacheNotExist = fmt.Errorf("key not exist")
+
 type Cacher interface {
-	Get(fmt.Stringer) (string, error)
-	Set(fmt.Stringer, string, time.Duration) error
-	Delete(fmt.Stringer) error
+	Get(context.Context, fmt.Stringer) (string, error)
+	Set(context.Context, fmt.Stringer, string, time.Duration) error
+	Delete(context.Context, fmt.Stringer) error
 }

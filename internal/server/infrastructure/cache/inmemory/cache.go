@@ -1,13 +1,12 @@
 package inmemory
 
 import (
+	"context"
 	"fmt"
 	"github.com/hotafrika/griz-backend/internal/server/domain"
 	"sync"
 	"time"
 )
-
-var ErrNotExist = fmt.Errorf("key not exist")
 
 // Cache implements inmemory cache type
 type Cache struct {
@@ -25,18 +24,18 @@ func NewCache() *Cache {
 }
 
 // Get receives value by key
-func (c *Cache) Get(key fmt.Stringer) (string, error) {
+func (c *Cache) Get(ctx context.Context, key fmt.Stringer) (string, error) {
 	c.rw.RLock()
 	value, ok := c.data[key.String()]
 	c.rw.RUnlock()
 	if !ok {
-		return "", ErrNotExist
+		return "", domain.ErrCacheNotExist
 	}
 	return value, nil
 }
 
 // Set sets key - value in memory
-func (c *Cache) Set(key fmt.Stringer, value string, ttl time.Duration) error {
+func (c *Cache) Set(ctx context.Context, key fmt.Stringer, value string, ttl time.Duration) error {
 	c.rw.Lock()
 	c.data[key.String()] = value
 	c.rw.Unlock()
@@ -44,7 +43,7 @@ func (c *Cache) Set(key fmt.Stringer, value string, ttl time.Duration) error {
 }
 
 // Delete removes value by key
-func (c *Cache) Delete(key fmt.Stringer) error {
+func (c *Cache) Delete(ctx context.Context, key fmt.Stringer) error {
 	c.rw.Lock()
 	delete(c.data, key.String())
 	c.rw.Unlock()

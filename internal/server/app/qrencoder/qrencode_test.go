@@ -1,7 +1,7 @@
 package qrencoder
 
 import (
-	"github.com/hotafrika/griz-backend/internal/server/infrastructure/qrdecoder"
+	qrdecoder2 "github.com/hotafrika/griz-backend/internal/server/app/qrdecoder"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -38,7 +38,7 @@ func TestYeqown_Encode(t *testing.T) {
 			blockSize: 12,
 		},
 	}
-	m := qrdecoder.Makiuchi{}
+	m := qrdecoder2.Makiuchi{}
 	for _, tt := range tests {
 		y := NewYeqown(WithQRWidth(tt.blockSize), WithFileImagePNG("GrizLogo.png"))
 		t.Run(tt.name, func(t *testing.T) {

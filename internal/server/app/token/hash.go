@@ -16,16 +16,16 @@ type AES struct {
 }
 
 // NewAES creates new AES with set key
-func NewAES(key string) (*AES, error) {
+func NewAES(key string) (AES, error) {
 	keyB := []byte(key)
 	if len(keyB) != aes.BlockSize {
-		return nil, errors.New("key has to be 16 bytes long")
+		return AES{}, errors.New("key has to be 16 bytes long")
 	}
 	block, err := aes.NewCipher(keyB)
 	if err != nil {
-		return nil, err
+		return AES{}, err
 	}
-	return &AES{aesblock: block}, nil
+	return AES{aesblock: block}, nil
 }
 
 // Create returns token as a string
