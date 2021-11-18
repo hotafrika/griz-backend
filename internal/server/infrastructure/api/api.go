@@ -40,10 +40,7 @@ func NewRest(bindAddr string, timeout time.Duration, parseTimeout time.Duration,
 		router:      chi.NewRouter(),
 	}
 	r.configureRouter()
-	r.server = &http.Server{
-		Addr:    bindAddr,
-		Handler: r.router,
-	}
+
 	return r
 }
 
@@ -120,6 +117,7 @@ func (rest *Rest) userSelfHandler(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			rest.writeErrorCode(w, http.StatusNotFound, "user not found")
 		}
+		rest.logger.Error().Err(err).Send()
 		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
@@ -132,7 +130,8 @@ func (rest *Rest) userSelfHandler(w http.ResponseWriter, r *http.Request) {
 
 	body, err := json.Marshal(resourceUser)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		rest.logger.Error().Err(err).Send()
+		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
 
@@ -170,12 +169,14 @@ func (rest *Rest) tokenHandler(w http.ResponseWriter, r *http.Request) {
 			rest.writeErrorCode(w, http.StatusUnauthorized, "wrong credentials")
 			return
 		}
+		rest.logger.Error().Err(err).Send()
 		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	body, err := json.Marshal(resources.AuthTokenResponse{Token: authToken})
 	if err != nil {
+		rest.logger.Error().Err(err).Send()
 		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
@@ -209,12 +210,14 @@ func (rest *Rest) urlHandler(w http.ResponseWriter, r *http.Request) {
 			rest.writeErrorCode(w, http.StatusNotFound, "link not found")
 			return
 		}
+		rest.logger.Error().Err(err).Send()
 		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	body, err := json.Marshal(resources.LinkHashResponse{URL: link})
 	if err != nil {
+		rest.logger.Error().Err(err).Send()
 		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
@@ -244,12 +247,14 @@ func (rest *Rest) scanHandler(w http.ResponseWriter, r *http.Request) {
 
 	link, err := rest.service.FindCodeBySocial(r.Context(), sl.URL)
 	if err != nil {
+		rest.logger.Info().Str("link", sl.URL).Msg("unable to process link")
 		rest.writeErrorCode(w, http.StatusUnprocessableEntity, "unable to process link")
 		return
 	}
 
 	body, err := json.Marshal(resources.SocialLinkResponse{URL: link})
 	if err != nil {
+		rest.logger.Error().Err(err).Send()
 		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
@@ -271,6 +276,7 @@ func (rest *Rest) authMiddleware(next http.Handler) http.Handler {
 				rest.writeErrorCode(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
+			rest.logger.Error().Err(err).Send()
 			rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 			return
 		}

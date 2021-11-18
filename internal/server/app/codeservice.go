@@ -57,7 +57,7 @@ func NewCodeService(
 		passEncryptor:      passEncryptor,
 		authTokenEncryptor: authTokenEncryptor,
 		hashEncryptor:      hashEncryptor,
-		qrSource:           instagram.NewQRSource(),
+		qrSource:           instagram.NewQRSourceWithLogger(logger),
 		qrEncoder:          qrencoder.DefaultYeqown(),
 	}
 }

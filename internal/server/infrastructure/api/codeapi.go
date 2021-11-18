@@ -62,12 +62,14 @@ func (rest *Rest) createCode(w http.ResponseWriter, r *http.Request) {
 
 	id, err := rest.service.CreateCode(r.Context(), code)
 	if err != nil {
+		rest.logger.Error().Err(err).Send()
 		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	body, err := json.Marshal(resources.CodeCreateResponse{ID: id})
 	if err != nil {
+		rest.logger.Error().Err(err).Send()
 		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
@@ -133,6 +135,7 @@ func (rest *Rest) getCode(w http.ResponseWriter, r *http.Request) {
 			rest.writeErrorCode(w, http.StatusNotFound, "not found")
 			return
 		}
+		rest.logger.Error().Err(err).Send()
 		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
@@ -147,6 +150,7 @@ func (rest *Rest) getCode(w http.ResponseWriter, r *http.Request) {
 		URL: code.SrcURL,
 	})
 	if err != nil {
+		rest.logger.Error().Err(err).Send()
 		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
@@ -174,6 +178,7 @@ func (rest *Rest) downloadCode(w http.ResponseWriter, r *http.Request) {
 			rest.writeErrorCode(w, http.StatusNotFound, "not found")
 			return
 		}
+		rest.logger.Error().Err(err).Send()
 		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
@@ -185,12 +190,17 @@ func (rest *Rest) downloadCode(w http.ResponseWriter, r *http.Request) {
 
 	encodedQR, err := rest.service.DownloadCodeByHash(r.Context(), code.Hash)
 	if err != nil {
+		if errors.Is(err, domain.ErrCodeNotFound) {
+			rest.writeErrorCode(w, http.StatusNotFound, "not found")
+			return
+		}
 		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	body, err := json.Marshal(resources.DownloadCodeResponse{Code: encodedQR})
 	if err != nil {
+		rest.logger.Error().Err(err).Send()
 		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
@@ -237,6 +247,7 @@ func (rest *Rest) updateCode(w http.ResponseWriter, r *http.Request) {
 			rest.writeErrorCode(w, http.StatusNotFound, "not found")
 			return
 		}
+		rest.logger.Error().Err(err).Send()
 		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
@@ -250,12 +261,17 @@ func (rest *Rest) updateCode(w http.ResponseWriter, r *http.Request) {
 
 	err = rest.service.UpdateCode(r.Context(), code)
 	if err != nil {
+		if errors.Is(err, domain.ErrCodeNotFound) {
+			rest.writeErrorCode(w, http.StatusNotFound, "not found")
+			return
+		}
 		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	body, err := json.Marshal(resources.GetCodeResponse{ID: code.ID, URL: code.SrcURL})
 	if err != nil {
+		rest.logger.Error().Err(err).Send()
 		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}
@@ -283,6 +299,7 @@ func (rest *Rest) deleteCode(w http.ResponseWriter, r *http.Request) {
 			rest.writeErrorCode(w, http.StatusNotFound, "not found")
 			return
 		}
+		rest.logger.Error().Err(err).Send()
 		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
@@ -294,12 +311,17 @@ func (rest *Rest) deleteCode(w http.ResponseWriter, r *http.Request) {
 
 	err = rest.service.DeleteCode(r.Context(), code)
 	if err != nil {
+		if errors.Is(err, domain.ErrCodeNotFound) {
+			rest.writeErrorCode(w, http.StatusNotFound, "not found")
+			return
+		}
 		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	body, err := json.Marshal(resources.DeleteCodeResponse{Status: "ok"})
 	if err != nil {
+		rest.logger.Error().Err(err).Send()
 		rest.writeErrorCode(w, http.StatusInternalServerError, "error during building response")
 		return
 	}

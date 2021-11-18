@@ -6,6 +6,8 @@ import (
 	"github.com/hotafrika/griz-backend/internal/server/domain"
 	"github.com/hotafrika/griz-backend/internal/server/infrastructure/instagram/photo"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+	zlog "github.com/rs/zerolog/log"
 	"sync"
 	"time"
 )
@@ -14,13 +16,25 @@ import (
 type QRSource struct {
 	decoder     domain.QRDecoder
 	photoSource domain.PhotoSourcer
+	logger      *zerolog.Logger
 	client      *resty.Client
 }
 
 // NewQRSource ...
 func NewQRSource() *QRSource {
+	logger := zlog.Level(zerolog.Disabled)
 	return &QRSource{
 		photoSource: photo.NewPhotoSource(),
+		logger:      &logger,
+		client:      resty.New().SetTimeout(10 * time.Second),
+	}
+}
+
+// NewQRSourceWithLogger ...
+func NewQRSourceWithLogger(logger *zerolog.Logger) *QRSource {
+	return &QRSource{
+		photoSource: photo.NewPhotoSource(),
+		logger:      logger,
 		client:      resty.New().SetTimeout(10 * time.Second),
 	}
 }
@@ -69,13 +83,13 @@ func (qs QRSource) GetFirstQR(ctx context.Context, code string) (b []byte, err e
 func (qs QRSource) processImage(ctx context.Context, link string) ([]byte, error) {
 	b, err := qs.downloadImage(ctx, link)
 	if err != nil {
-		// TODO log here
+		qs.logger.Info().Str("link", link).Err(err).Msg("unable to download image")
 		return nil, err
 	}
 
 	res, err := qs.decoder.Decode(b)
 	if err != nil {
-		// TODO log here
+		qs.logger.Info().Str("link", link).Err(err).Msg("unable to decode")
 		return nil, err
 	}
 
