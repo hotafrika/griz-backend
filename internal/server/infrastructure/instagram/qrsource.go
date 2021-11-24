@@ -9,7 +9,6 @@ import (
 	"github.com/rs/zerolog"
 	zlog "github.com/rs/zerolog/log"
 	"sync"
-	"time"
 )
 
 // QRSource is for getting QR codes from instagram post
@@ -26,7 +25,7 @@ func NewQRSource() *QRSource {
 	return &QRSource{
 		photoSource: photo.NewPhotoSource(),
 		logger:      &logger,
-		client:      resty.New().SetTimeout(10 * time.Second),
+		client:      resty.New(),
 	}
 }
 
@@ -35,7 +34,7 @@ func NewQRSourceWithLogger(logger *zerolog.Logger) *QRSource {
 	return &QRSource{
 		photoSource: photo.NewPhotoSource(),
 		logger:      logger,
-		client:      resty.New().SetTimeout(10 * time.Second),
+		client:      resty.New(),
 	}
 }
 
@@ -83,6 +82,7 @@ func (qs QRSource) GetFirstQR(ctx context.Context, code string) (b []byte, err e
 func (qs QRSource) processImage(ctx context.Context, link string) ([]byte, error) {
 	b, err := qs.downloadImage(ctx, link)
 	if err != nil {
+		// TODO log cause here
 		qs.logger.Info().Str("link", link).Err(err).Msg("unable to download image")
 		return nil, err
 	}
