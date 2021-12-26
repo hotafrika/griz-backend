@@ -116,6 +116,7 @@ func (rest *Rest) userSelfHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			rest.writeErrorCode(w, http.StatusNotFound, "user not found")
+			return
 		}
 		rest.logger.Error().Err(err).Send()
 		rest.writeErrorCode(w, http.StatusInternalServerError, "internal error")
