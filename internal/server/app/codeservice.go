@@ -142,7 +142,7 @@ func (s CodeService) FindCodeBySocial(ctx context.Context, link string) (string,
 		return "", errors.Wrap(err, "FindCodeBySocial: set cache: ")
 	}
 
-	return string(b), nil
+	return srcLink, nil
 }
 
 // FindCodeByHash returns sourceUrl by its hash

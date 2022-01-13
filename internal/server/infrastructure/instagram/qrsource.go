@@ -3,6 +3,7 @@ package instagram
 import (
 	"context"
 	"github.com/go-resty/resty/v2"
+	"github.com/hotafrika/griz-backend/internal/server/app/qrdecoder"
 	"github.com/hotafrika/griz-backend/internal/server/domain"
 	"github.com/hotafrika/griz-backend/internal/server/infrastructure/instagram/photo"
 	"github.com/pkg/errors"
@@ -26,6 +27,7 @@ func NewQRSource() *QRSource {
 		photoSource: photo.NewPhotoSource(),
 		logger:      &logger,
 		client:      resty.New(),
+		decoder:     qrdecoder.Makiuchi{},
 	}
 }
 
@@ -35,13 +37,14 @@ func NewQRSourceWithLogger(logger *zerolog.Logger) *QRSource {
 		photoSource: photo.NewPhotoSource(),
 		logger:      logger,
 		client:      resty.New(),
+		decoder:     qrdecoder.Makiuchi{},
 	}
 }
 
 // GetFirstQR returns parsed data from first found code.
 // It could be any kind of data. For our case we need to validate it.
-func (qs QRSource) GetFirstQR(ctx context.Context, code string) (b []byte, err error) {
-	links, err := qs.photoSource.GetPhotos(ctx, code)
+func (qs QRSource) GetFirstQR(ctx context.Context, link string) (b []byte, err error) {
+	links, err := qs.photoSource.GetPhotos(ctx, link)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetPhotos: ")
 	}

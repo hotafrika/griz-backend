@@ -34,7 +34,7 @@ type Source struct {
 
 // NewPhotoSource creates Source
 func NewPhotoSource() Source {
-	re := regexp.MustCompile(`^[0-9A-Za-z]+$`)
+	re := regexp.MustCompile(`^https://www.instagram.com/p/([0-9A-Za-z]+)/`)
 	client := resty.New().SetTimeout(10 * time.Second)
 	return Source{
 		keyValidator: re,
@@ -44,10 +44,10 @@ func NewPhotoSource() Source {
 }
 
 // GetPhotos returns links to instagram photos
-func (s Source) GetPhotos(ctx context.Context, key string) (links []string, err error) {
-	err = s.validateKey(key)
+func (s Source) GetPhotos(ctx context.Context, link string) (links []string, err error) {
+	key, err := s.validateKey(link)
 	if err != nil {
-		return nil, errors.Wrap(err, "key validation: ")
+		return nil, errors.Wrap(err, "link validation: ")
 	}
 
 	ua := browser.Chrome()
@@ -72,11 +72,12 @@ func (s Source) GetPhotos(ctx context.Context, key string) (links []string, err 
 	return embedRes.getURLs(), err
 }
 
-func (s Source) validateKey(key string) error {
-	if !s.keyValidator.Match([]byte(key)) {
-		return errors.New("key has wrong format")
+func (s Source) validateKey(link string) (string, error) {
+	keys := s.keyValidator.FindStringSubmatch(link)
+	if len(keys) < 2 {
+		return "", errors.New("link has wrong format")
 	}
-	return nil
+	return keys[1], nil
 }
 
 func parseBodyByScript(er *EmbedResponse, r io.Reader) (err error) {
@@ -103,6 +104,7 @@ func parseBodyByScript(er *EmbedResponse, r io.Reader) (err error) {
 		}
 	}
 
+	// TODO delete here
 	fmt.Println(er.getURLs())
 	return
 }
