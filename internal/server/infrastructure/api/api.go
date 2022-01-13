@@ -248,7 +248,7 @@ func (rest *Rest) scanHandler(w http.ResponseWriter, r *http.Request) {
 
 	link, err := rest.service.FindCodeBySocial(r.Context(), sl.URL)
 	if err != nil {
-		rest.logger.Info().Str("link", sl.URL).Msg("unable to process link")
+		rest.logger.Info().Str("link", sl.URL).Str("error", err.Error()).Msg("unable to process link")
 		rest.writeErrorCode(w, http.StatusUnprocessableEntity, "unable to process link")
 		return
 	}

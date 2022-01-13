@@ -16,34 +16,54 @@ func TestSource_validateKey(t *testing.T) {
 		name    string
 		args    args
 		wantErr bool
+		wantKey string
 	}{
 		{
 			name:    "non valid",
-			args:    args{key: "kadfankdfk-"},
+			args:    args{key: "https://www.instagram.com/p/kadfankdfk-"},
 			wantErr: true,
+			wantKey: "",
 		},
 		{
 			name:    "non valid 2",
 			args:    args{key: ""},
 			wantErr: true,
+			wantKey: "",
 		},
 		{
 			name:    "non valid 3",
-			args:    args{key: "123NAlsdkfj12312_"},
+			args:    args{key: "https://www.instagram.com/p/123NAlsdkfj12312_"},
 			wantErr: true,
+			wantKey: "",
+		},
+		{
+			name:    "non valid 4",
+			args:    args{key: "https://www.instagra.com/p/123NAlsdkfj12312/"},
+			wantErr: true,
+			wantKey: "",
 		},
 		{
 			name:    "valid",
-			args:    args{key: "123NAlsdkfj12312"},
+			args:    args{key: "https://www.instagram.com/p/123NAlsdkfj12312/"},
 			wantErr: false,
+			wantKey: "123NAlsdkfj12312",
+		},
+		{
+			name:    "valid 2",
+			args:    args{key: "https://www.instagram.com/p/123NAlsdkfj12312/askdfjask"},
+			wantErr: false,
+			wantKey: "123NAlsdkfj12312",
 		},
 	}
 	s := NewPhotoSource()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
-			if err := s.validateKey(tt.args.key); (err != nil) != tt.wantErr {
+			key, err := s.validateKey(tt.args.key)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("validateKey() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if key != tt.wantKey {
+				t.Errorf("validateKey() key = %s, wantKey %s", key, tt.wantKey)
 			}
 		})
 	}
